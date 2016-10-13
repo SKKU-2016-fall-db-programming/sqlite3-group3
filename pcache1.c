@@ -775,7 +775,7 @@ static sqlite3_pcache *pcache1Create(int szPage, int szExtra, int bPurgeable){
       //TODO pGroup 내의 변수들 초기화
       pGroup->nMaxLen = 0;
       pGroup->nCurLen = 0;
-      nPtrArr = NULL;
+      pGroup->nPtrArr = NULL;
     }
     pCache->pGroup = pGroup;
     pCache->szPage = szPage;
