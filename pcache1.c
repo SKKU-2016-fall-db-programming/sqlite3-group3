@@ -81,10 +81,14 @@
 ** common workloads.
 */
 #include "sqliteInt.h"
+<<<<<<< HEAD
 //TODO
 #include <stdlib.h>
 #include <time.h>
 #include <string.h> //memcpy()
+=======
+
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
 typedef struct PCache1 PCache1;
 typedef struct PgHdr1 PgHdr1;
 typedef struct PgFreeslot PgFreeslot;
@@ -137,9 +141,12 @@ struct PGroup {
   unsigned int mxPinned;         /* nMaxpage + 10 - nMinPage */
   unsigned int nCurrentPage;     /* Number of purgeable pages allocated */
   PgHdr1 lru;                    /* The beginning and end of the LRU list */
+<<<<<<< HEAD
   unsigned int nMaxLen;
   unsigned int nCurLen;
   PgHdr1 **nPtrArr;
+=======
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
 };
 
 /* Each page cache is an instance of the following object.  Every
@@ -772,10 +779,13 @@ static sqlite3_pcache *pcache1Create(int szPage, int szExtra, int bPurgeable){
     if( pGroup->lru.isAnchor==0 ){
       pGroup->lru.isAnchor = 1;
       pGroup->lru.pLruPrev = pGroup->lru.pLruNext = &pGroup->lru;
+<<<<<<< HEAD
       //TODO pGroup 내의 변수들 초기화
       pGroup->nMaxLen = 0;
       pGroup->nCurLen = 0;
       nPtrArr = NULL;
+=======
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
     }
     pCache->pGroup = pGroup;
     pCache->szPage = szPage;
@@ -784,8 +794,11 @@ static sqlite3_pcache *pcache1Create(int szPage, int szExtra, int bPurgeable){
     pCache->bPurgeable = (bPurgeable ? 1 : 0);
     pcache1EnterMutex(pGroup);
     pcache1ResizeHash(pCache);
+<<<<<<< HEAD
     //TODO
     pcache1ResizeLookupTable(pGroup);
+=======
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
     if( bPurgeable ){
       pCache->nMin = 10;
       pGroup->nMinPage += pCache->nMin;
@@ -867,8 +880,11 @@ static SQLITE_NOINLINE PgHdr1 *pcache1FetchStage2(
   unsigned int nPinned;
   PGroup *pGroup = pCache->pGroup;
   PgHdr1 *pPage = 0;
+<<<<<<< HEAD
   //TODO radomnumber 저장
 	unsigned int randNum = 0;
+=======
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
 
   /* Step 3: Abort if createFlag is 1 but the cache is nearly full */
   assert( pCache->nPage >= pCache->nRecyclable );
@@ -892,6 +908,7 @@ static SQLITE_NOINLINE PgHdr1 *pcache1FetchStage2(
    && ((pCache->nPage+1>=pCache->nMax) || pcache1UnderMemoryPressure(pCache))
   ){
     PCache1 *pOther;
+<<<<<<< HEAD
     //TODO victim 고를 때, clean LRU 가 아니라 lookup table에서 랜덤으로 선택한다.
     //pPage = pGroup->lru.pLruPrev;
     srand(time(NULL));
@@ -904,6 +921,9 @@ static SQLITE_NOINLINE PgHdr1 *pcache1FetchStage2(
 		pcache1ResizeLookupTable(pGroup);
 	}
 
+=======
+    pPage = pGroup->lru.pLruPrev;
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
     assert( pPage->isPinned==0 );
     pcache1RemoveFromHash(pPage, 0);
     pcache1PinPage(pPage);
@@ -1018,8 +1038,11 @@ static PgHdr1 *pcache1FetchNoMutex(
   ** subsequent steps to try to create the page. */
   if( pPage ){
     if( !pPage->isPinned ){
+<<<<<<< HEAD
 //TODO: 여기서 고치면 안된다. 여기서는 해쉬테이블에서 
 //hit된 시나리오 이므로, 우리는 여기와 상관이 없다.
+=======
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
       return pcache1PinPage(pPage);
     }else{
       return pPage;
@@ -1073,6 +1096,7 @@ static sqlite3_pcache_page *pcache1Fetch(
 }
 
 
+<<<<<<< HEAD
 static void	pcache1ResizeLookupTable(PGroup *pGroup) {
 	PgHdr1 **newLookupTable;
 	unsigned int nNew;
@@ -1098,6 +1122,8 @@ static void	pcache1ResizeLookupTable(PGroup *pGroup) {
 	}
 }
 
+=======
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
 /*
 ** Implementation of the sqlite3_pcache.xUnpin method.
 **
@@ -1131,6 +1157,7 @@ static void pcache1Unpin(
     *ppFirst = pPage;
     pCache->nRecyclable++;
     pPage->isPinned = 0;
+<<<<<<< HEAD
     //TODO Lookup table에 페이지 추가
     //resize lookup table
 		
@@ -1139,6 +1166,8 @@ static void pcache1Unpin(
     pGroup->nPtrArr[pGroup->nCurLen++] = pPage;
     if(pGroup->nCurLen >= pGroup->nMaxLen)
     	pcache1ResizeLookupTable(pGroup);
+=======
+>>>>>>> 4b3906f3c1557b4422062152f788163119d7ebf1
   }
 
   pcache1LeaveMutex(pCache->pGroup);
