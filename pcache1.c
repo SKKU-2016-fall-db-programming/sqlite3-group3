@@ -747,6 +747,35 @@ static void pcache1Shutdown(void *NotUsed){
 /* forward declaration */
 static void pcache1Destroy(sqlite3_pcache *p);
 
+static void	pcache1ResizeLookupTable(PGroup *pGroup) {
+	PgHdr1 **newLookupTable;
+	unsigned int nNew;
+	unsigned int i;
+
+	nNew = pGroup->nCurLen * 2;
+
+	if(nNew < 256 ) {
+		nNew = 256;
+	}
+
+	pcache1LeaveMutex(pGroup);
+	if( pGroup->nCurLen) { sqlite3BeginBenignMalloc();}
+	newLookupTable = (PgHdr1 **)sqlite3MallocZero(sizeof(PgHdr1 *)*nNew);
+	if(pGroup->nCurLen) { sqlite3BeginBenignMalloc();}
+	pcache1EnterMutex(pGroup);
+
+	if(newLookupTable) {
+		memcpy(newLookupTable, (pGroup->nPtrArr), sizeof(PgHdr1*)*(pGroup->nCurLen));
+		sqlite3_free(pGroup->nPtrArr);
+		pGroup->nPtrArr = newLookupTable;
+		pGroup->nMaxLen = nNew;
+	}
+}
+
+
+
+
+
 /*
 ** Implementation of the sqlite3_pcache.xCreate method.
 **
@@ -1070,32 +1099,6 @@ static sqlite3_pcache_page *pcache1Fetch(
   {
     return (sqlite3_pcache_page*)pcache1FetchNoMutex(p, iKey, createFlag);
   }
-}
-
-
-static void	pcache1ResizeLookupTable(PGroup *pGroup) {
-	PgHdr1 **newLookupTable;
-	unsigned int nNew;
-	unsigned int i;
-
-	nNew = pGroup->nCurLen * 2;
-
-	if(nNew < 256 ) {
-		nNew = 256;
-	}
-
-	pcache1LeaveMutex(pGroup);
-	if( pGroup->nCurLen) { sqlite3BeginBenignMalloc();}
-	newLookupTable = (PgHdr1 **)sqlite3MallocZero(sizeof(PgHdr1 *)*nNew);
-	if(pGroup->nCurLen) { sqlite3BeginBenignMalloc();}
-	pcache1EnterMutex(pGroup);
-
-	if(newLookupTable) {
-		memcpy(newLookupTable, (pGroup->nPtrArr), sizeof(PgHdr1*)*(pGroup->nCurLen));
-		sqlite3_free(pGroup->nPtrArr);
-		pGroup->nPtrArr = newLookupTable;
-		pGroup->nMaxLen = nNew;
-	}
 }
 
 /*
