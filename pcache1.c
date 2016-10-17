@@ -733,26 +733,15 @@ static int pcache1Init(void *NotUsed){
   return SQLITE_OK;
 }
 
-/*
-** Implementation of the sqlite3_pcache.xShutdown method.
-** Note that the static mutex allocated in xInit does 
-** not need to be freed.
-*/
-static void pcache1Shutdown(void *NotUsed){
-  UNUSED_PARAMETER(NotUsed);
-  assert( pcache1.isInit!=0 );
-  memset(&pcache1, 0, sizeof(pcache1));
-}
-
-/* forward declaration */
-static void pcache1Destroy(sqlite3_pcache *p);
-
 static void	pcache1ResizeLookupTable(PGroup *pGroup) {
 	PgHdr1 **newLookupTable;
 	unsigned int nNew;
 	unsigned int i;
 
 	nNew = pGroup->nCurLen * 2;
+	if(pGroup->nMaxLen == 256 && pGroup->nCurLen < 256) {
+		return;
+	}
 
 	if(nNew < 256 ) {
 		nNew = 256;
@@ -772,9 +761,19 @@ static void	pcache1ResizeLookupTable(PGroup *pGroup) {
 	}
 }
 
+/*
+** Implementation of the sqlite3_pcache.xShutdown method.
+** Note that the static mutex allocated in xInit does 
+** not need to be freed.
+*/
+static void pcache1Shutdown(void *NotUsed){
+  UNUSED_PARAMETER(NotUsed);
+  assert( pcache1.isInit!=0 );
+  memset(&pcache1, 0, sizeof(pcache1));
+}
 
-
-
+/* forward declaration */
+static void pcache1Destroy(sqlite3_pcache *p);
 
 /*
 ** Implementation of the sqlite3_pcache.xCreate method.
@@ -923,9 +922,26 @@ static SQLITE_NOINLINE PgHdr1 *pcache1FetchStage2(
     PCache1 *pOther;
     //TODO victim 고를 때, clean LRU 가 아니라 lookup table에서 랜덤으로 선택한다.
     //pPage = pGroup->lru.pLruPrev;
-    srand(time(NULL));
-    randNum = rand();
-    pPage = pGroup->nPtrArr[randNum % pGroup->nCurLen]; 
+	srand(time(NULL));
+	do {
+		//이 경우에 들어갔다면 어딘가에서 오류가 발생한 것.
+		//clean page가 아무것도 존재하지 않는 경우
+		if(pGroup->nCurLen == 0){
+			pPage = NULL;
+			break;
+		}
+		randNum = rand();
+		randNum %= pGroup->nCurLen;
+		pPage = pGroup->nPtrArr[randNum];
+		//pinned 된 상태라면 LRU에 조차도  존재하지 않는 것
+		//Lookup table에도 존재하면 안되므로 제외하고 다시 고른다.
+		if(pPage->isPinned){	
+			pGroup->nPtrArr[randNum] = pGroup->nPtrArr[pGroup->nCurLen - 1];
+			pGroup->nCurLen--;
+		} else {
+			break;
+		}
+	} while(1);
 	pGroup->nPtrArr[randNum] = pGroup->nPtrArr[pGroup->nCurLen - 1];
 	pGroup->nCurLen--;
 	//lookup table size 줄이기
@@ -1100,6 +1116,7 @@ static sqlite3_pcache_page *pcache1Fetch(
     return (sqlite3_pcache_page*)pcache1FetchNoMutex(p, iKey, createFlag);
   }
 }
+
 
 /*
 ** Implementation of the sqlite3_pcache.xUnpin method.
