@@ -3806,7 +3806,7 @@ static void btreeEndTransaction(Btree *p){
   btreeIntegrity(p);
 	////////////////////////////
 	//TODO: modified
-	LOG log = { END_LOG, 0, 0, 0, 0, 0 };
+	LOG log = { COMMIT_LOG, 0, 0, 0, 0, 0 };
 	memcpy(save_log + log_offset, (const void*)&log, sizeof(LOG));
 	log_offset += sizeof(LOG);
 	msync(save_log, log_offset, MS_SYNC);	
