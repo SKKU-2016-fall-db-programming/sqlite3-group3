@@ -3804,13 +3804,6 @@ static void btreeEndTransaction(Btree *p){
   }
 
   btreeIntegrity(p);
-	////////////////////////////
-	//TODO: modified
-	LOG log = { COMMIT_LOG, 0, 0, 0, 0, 0 };
-	memcpy(save_log + log_offset, (const void*)&log, sizeof(LOG));
-	log_offset += sizeof(LOG);
-	msync(save_log, log_offset, MS_SYNC);	
-	////////////////////////////
 }
 
 /*
@@ -3879,6 +3872,14 @@ int sqlite3BtreeCommit(Btree *p){
     rc = sqlite3BtreeCommitPhaseTwo(p, 0);
   }
   sqlite3BtreeLeave(p);
+  //TODO:
+	////////////////////////////
+	//TODO: modified
+	LOG log = { COMMIT_LOG, 0, 0, 0, 0, 0 };
+	memcpy(save_log + log_offset, (const void*)&log, sizeof(LOG));
+	log_offset += sizeof(LOG);
+	msync(save_log, log_offset, MS_SYNC);	
+	////////////////////////////
   return rc;
 }
 
@@ -8067,7 +8068,7 @@ int sqlite3BtreeInsert(
   	  //TODO: UPDATE_LOG
   	  log.length = szNew; 	//assume that szNew == szOld
   	  log.LogType = UPDATE_LOG;
-	  memcpy(save_log + log_offset + tmp_offset, oldCell, szNew);
+	  memcpy(save_log + log_offset + tmp_offset + szNew, oldCell,szNew);
 	  log.undoInfo = oldCell;	//not null	  
   	  ////////////////////////////
     if( !pPage->leaf ){
@@ -8090,7 +8091,7 @@ int sqlite3BtreeInsert(
 	log.length += szNew;	// if log has undo & redo information log.length = 2*szNew;
 	log.pgno = pPage->pgno;
 	log.pos.offset = idx;
-	memcpy(save_log + log_offset + tmp_offset + szNew, newCell,szNew);
+	memcpy(save_log + log_offset + tmp_offset, newCell, szNew);
 	log.redoInfo = newCell;	// not null
 	////////////////////////////
 
