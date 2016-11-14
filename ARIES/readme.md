@@ -1,5 +1,4 @@
-sqlite's force policy to no policy in order to reduce write amplication on mobile device with flash memory
+Modify sqlite's force policy into no policy in order to reduce write amplication on mobile device with flash memory.
 
 
-
-"sqlite-src-3150100" code is modified.
+SQLite version :"sqlite-src-3150100" code is being modified.
