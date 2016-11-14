@@ -247,7 +247,7 @@ typedef struct {
 	Pgno pgno;
 	union {
 		long offset;				// offset in page
-		long undoNextLSN;
+		long undoNextOffset;
 	} pos;
 	long length;				// length of record
 	unsigned char *redoInfo;	// redo information

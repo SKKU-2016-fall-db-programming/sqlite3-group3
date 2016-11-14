@@ -2923,6 +2923,7 @@ static int openDatabase(
 		fprintf(stderr, "LOG FILE MAPPING ERROR\n");
 		return -1;
   }
+  //////////////////////////////////////////////////
 
   /* Add the default collation sequence BINARY. BINARY works for both UTF-8
   ** and UTF-16, so add a version for each to avoid any unnecessary

@@ -7971,10 +7971,8 @@ int sqlite3BtreeInsert(
 ){
 	////////////////////////////
 	//TODO: modified
-	LOG log = { INSERT_LOG, 0, 0, 0, 0, 0 };
-	//memcpy(save_log + log_offset, (const void*)&log, sizeof(LOG));
-	//log_offset += sizeof(LOG);
-	//msync(save_log, log_offset, MS_SYNC);	
+	LOG log = { INSERT_LOG, 0, 0, 0, NULL, NULL };
+	long tmp_offset = sizeof(LOG) - (sizeof(unsigned char*) << 1);
 	////////////////////////////
   int rc;
   int loc = seekResult;          /* -1: before desired location  +1: after */
@@ -8053,10 +8051,6 @@ int sqlite3BtreeInsert(
   newCell = pBt->pTmpSpace;
   assert( newCell!=0 );
   rc = fillInCell(pPage, newCell, pX, &szNew);
-  //////////////////////////////////////////
-  //TODO: log length
-  log.length = szNew;	//assume that szNew == szOld
-  //////////////////////////////////////////
   if( rc ) goto end_insert;
   assert( szNew==pPage->xCellSize(pPage, newCell) );
   assert( szNew <= MX_CELL_SIZE(pBt) );
@@ -8071,8 +8065,10 @@ int sqlite3BtreeInsert(
     oldCell = findCell(pPage, idx);
   	  ////////////////////////////
   	  //TODO: UPDATE_LOG
+  	  log.length = szNew; 	//assume that szNew == szOld
   	  log.LogType = UPDATE_LOG;
-  	  memcpy(log.undoInfo, oldCell, log.length); //store undo information into log
+	  memcpy(save_log + log_offset + tmp_offset, oldCell, szNew);
+	  log.undoInfo = oldCell;	//not null	  
   	  ////////////////////////////
     if( !pPage->leaf ){
       memcpy(newCell, oldCell, 4);
@@ -8091,9 +8087,11 @@ int sqlite3BtreeInsert(
   assert( rc!=SQLITE_OK || pPage->nCell>0 || pPage->nOverflow>0 );
 	////////////////////////////
 	//TODO: modified
+	log.length += szNew;	// if log has undo & redo information log.length = 2*szNew;
 	log.pgno = pPage->pgno;
 	log.pos.offset = idx;
-	memcpy(log.redoInfo, newCell, log.length);	//store redo information into log
+	memcpy(save_log + log_offset + tmp_offset + szNew, newCell,szNew);
+	log.redoInfo = newCell;	// not null
 	////////////////////////////
 
   /* If no error has occurred and pPage has an overflow cell, call balance() 
@@ -8135,8 +8133,9 @@ end_insert:
   	//////////////////////////////////////////////////////
 	//TODO: modified
 	//save log to log file
-	memcpy(save_log + log_offset, (const void*)&log, sizeof(LOG));
-	log_offset += sizeof(LOG);
+	//sizeof(LOG) - sizeof(unsigned char*) * 2 
+	memcpy(save_log + log_offset, (const void*)&log, tmp_offset);
+	log_offset += (tmp_offset + log.length);
 	msync(save_log, log_offset, MS_SYNC);	
   	//////////////////////////////////////////////////////
   return rc;
@@ -8240,6 +8239,19 @@ int sqlite3BtreeDelete(BtCursor *pCur, u8 flags){
   rc = sqlite3PagerWrite(pPage->pDbPage);
   if( rc ) return rc;
   rc = clearCell(pPage, pCell, &szCell);
+	////////////////////////////
+	//TODO: modified
+	long tmp_offset = sizeof(LOG) - (sizeof(char*) << 1);
+	LOG log = { DELETE_LOG, pPage->pgno, iCellIdx, szCell, 0, 0};
+
+	memcpy(save_log + log_offset, (const void*)&log, tmp_offset);
+	log_offset += tmp_offset;
+
+	//undo information
+	memcpy(save_log + log_offset, pCell, szCell);
+	log_offset += szCell;
+	//msync(save_log, log_offset, MS_SYNC);
+	////////////////////////////
   dropCell(pPage, iCellIdx, szCell, &rc);
   if( rc ) return rc;
 
@@ -8310,14 +8322,10 @@ int sqlite3BtreeDelete(BtCursor *pCur, u8 flags){
       }
     }
   }
-	////////////////////////////
-	//TODO: modified
-	LOG log = { DELETE_LOG, pPage->pgno, iCellIdx, szCell, 0, 0};
-	memcpy(log.undoInfo, pCell, szCell);	// store undo information
-	memcpy(save_log + log_offset, (const void*)&log, sizeof(LOG));
-	log_offset += sizeof(LOG);
-	msync(save_log, log_offset, MS_SYNC);	
-	////////////////////////////
+	/////////////////////////////////////yy
+	//TODO:
+	msync(save_log, log_offset, MS_SYNC);
+	/////////////////////////////////////yy
   return rc;
 }
 
